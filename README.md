@@ -7,7 +7,7 @@ So I do it.
 ### Contents
 
 - [Go](#go)
-- [Kubernetes](#Kubernetes)
-- [Distributed system](#Distributed system)
-- [Data structures and algorithms](#Data structures and algorithms)
-- [Others](#Others)
+- [Kubernetes](#kubernetes)
+- [Distributed system](#distributed-system)
+- [Data structures and algorithms](#data-structures-and-algorithms)
+- [Others](#others)
