@@ -85,5 +85,50 @@ func (m *Mutex) Unlock() {
 ```
 
 ##### Give the new goroutine a chance
-todo
-todo
+```go
+type Mutex struct {
+    state int32
+    sema  uint32
+}
+
+const (
+    mutexLocked = 1 << iota // mutex is locked
+    mutexWoken // awakened goroutine
+    mutexWaiterShift = iota // waiting goroutines
+)
+```
+mutexLocked and mutexWoken both takes up only one bit, the rest of the bits belong to mutexWaiterShift.
+
+```go
+func (m *Mutex) Lock() {
+    // Fast path. Lucky case, get the lock directly.
+    if atomic.CompareAndSwapInt32(&m.state, 0, mutexLocked) {
+        return
+    }
+
+    awoke := false
+    for {
+        old := m.state
+        new := old | mutexLocked // lock the new state
+        if old & mutexLocked != 0 { // has been locked
+            new = old + 1 << mutexWaiterShift // waiter++
+        }
+
+        if awoke { // goroutine is awakened
+            new &^ = mutexWoken // clear mutexWoken
+        }
+        
+        if atomic.CompareAndSwapInt32(&m.state, old, new) { // set new state
+            if old & mutexLocked == 0 { // no lock
+                break
+            }
+        }
+
+        runtime.Semacquire(&m.sema) // sema
+        awoke = true
+    }
+}
+```
+
+
+    
