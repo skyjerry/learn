@@ -128,6 +128,28 @@ func (m *Mutex) Lock() {
         awoke = true
     }
 }
+
+func Unlock() {
+	//  Fast path. Lucky case, drop lock bit.
+	new := atomic.AddInt32(&m.state, -mutexLocked) // unlock state
+	if (new + mutexLocked) & mutexLocked == 0 {
+		panic("sync: unlock of unlocked mutex")
+	}
+
+	old := new
+	for {
+		if old >> mutexWaiterShift == 0 || old & (mutexLocked | mutexWoken) != 0 { // no waiter or there are goroutines awakened or locked by others
+			return
+		}
+		
+		new = (old - 1 << mutexWaiterShift) | mutexWoken // new state. reday to wake up a goroutine and waiter--
+		if atomic.CompareAndSwapInt32(&m.state, old, new) {
+			runtime.Semrelease(&m.sema)
+			return
+		}
+		old = m.state
+	}
+}
 ```
 
 
